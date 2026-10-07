@@ -131,25 +131,40 @@
     $('idade').focus();
   });
 
-  /* ---------- simulação (contagem circular) ---------- */
+  /* ---------- simulação (contagem geral em um único círculo) ----------
+     Todas as opções entram em uma fila só, na ordem das categorias:
+     cat 1 op 1, cat 1 op 2, ..., cat 2 op 1, ... A contagem vai de 1 até a idade
+     e elimina a opção em que parar. A próxima rodada continua da opção seguinte.
+     Quando uma categoria fica com 1 opção, ela está decidida e sai da contagem. */
   function simulate(age, lists) {
-    var state = lists.map(function (l) { return { rem: l.map(function (_, i) { return i; }), s: 0 }; });
-    var total = Math.max.apply(null, lists.map(function (l) { return l.length; })) - 1;
-    var rounds = [];
+    var flat = [];
+    lists.forEach(function (l, c) { l.forEach(function (_, i) { flat.push({ c: c, i: i }); }); });
+    var N = flat.length;
+    var alive = flat.map(function () { return true; });
+    var left = lists.map(function (l) { return l.length; });
+    var total = N - lists.length;
+    var start = 0, rounds = [];
+
     for (var r = 0; r < total; r++) {
-      rounds.push(state.map(function (st) {
-        var n = st.rem.length;
-        var snap = { rem: st.rem.slice(), s: st.s, out: null };
-        if (n > 1) {
-          var e = (st.s + age - 1) % n;
-          snap.out = st.rem[e];
-          st.rem.splice(e, 1);
-          st.s = e % st.rem.length;
-        }
-        return snap;
-      }));
+      var order = [];
+      for (var k = 0; k < N; k++) {
+        var f = (start + k) % N;
+        if (alive[f] && left[flat[f].c] > 1) order.push(f);
+      }
+      var out = order[(age - 1) % order.length];
+      alive[out] = false;
+      left[flat[out].c]--;
+      start = (out + 1) % N;
+      var done = [];
+      if (left[flat[out].c] === 1) {
+        for (var q = 0; q < N; q++) if (alive[q] && flat[q].c === flat[out].c) done.push(q);
+      }
+      rounds.push({ order: order, out: out, done: done });
     }
-    return { rounds: rounds, winners: state.map(function (st) { return st.rem[0]; }) };
+
+    var winners = lists.map(function () { return 0; });
+    for (var m = 0; m < N; m++) if (alive[m]) winners[flat[m].c] = flat[m].i;
+    return { rounds: rounds, winners: winners };
   }
 
   /* ---------- espiral ---------- */
@@ -201,7 +216,7 @@
 
   /* ---------- animação ---------- */
   var runId = 0, skip = false;
-  var items = [];
+  var flatItems = [];
 
   function sleep(ms) {
     return new Promise(function (res) { setTimeout(res, skip ? 0 : ms); });
@@ -211,19 +226,19 @@
   function buildBoards(cats) {
     var boards = $('boards');
     boards.textContent = '';
-    items = [];
-    cats.forEach(function (c, ci) {
+    flatItems = [];
+    cats.forEach(function (c) {
       var box = document.createElement('div');
       box.className = 'board';
       var h = document.createElement('h3');
       h.className = 'mono';
       h.textContent = c.label;
       var ul = document.createElement('ul');
-      items[ci] = c.items.map(function (txt) {
+      c.items.forEach(function (txt) {
         var li = document.createElement('li');
         li.textContent = txt;
         ul.appendChild(li);
-        return li;
+        flatItems.push(li);
       });
       box.appendChild(h);
       box.appendChild(ul);
@@ -231,16 +246,12 @@
     });
   }
 
-  function setActive(round, k) {
-    round.forEach(function (snap, ci) {
-      items[ci].forEach(function (li) { li.classList.remove('active'); });
-      if (snap.rem.length < 2) return;
-      var idx = snap.rem[(snap.s + k - 1) % snap.rem.length];
-      items[ci][idx].classList.add('active');
-    });
-  }
   function clearActive() {
-    items.forEach(function (list) { list.forEach(function (li) { li.classList.remove('active'); }); });
+    flatItems.forEach(function (li) { li.classList.remove('active'); });
+  }
+  function setActive(round, k) {
+    clearActive();
+    flatItems[round.order[(k - 1) % round.order.length]].classList.add('active');
   }
 
   function countRound(round, age, id) {
@@ -307,22 +318,16 @@
       if (id !== runId) return;
       await sleep(450);
       if (id !== runId) return;
-      $('status').textContent = 'Riscando uma opção de cada lista.';
+      $('status').textContent = 'Riscando a opção em que a contagem parou.';
       clearActive();
-      for (var ci = 0; ci < cats.length; ci++) {
-        if (round[ci].out === null) continue;
-        items[ci][round[ci].out].classList.add('out');
-        await sleep(260);
-        if (id !== runId) return;
-      }
-      round.forEach(function (snap, ci) {
-        if (snap.out !== null && snap.rem.length === 2) items[ci][sim.winners[ci]].classList.add('winner');
-      });
-      await sleep(800);
+      flatItems[round.out].classList.add('out');
+      await sleep(900);
+      if (id !== runId) return;
+      round.done.forEach(function (f) { flatItems[f].classList.add('winner'); });
+      await sleep(600);
       if (id !== runId) return;
     }
 
-    sim.winners.forEach(function (w, ci) { items[ci][w].classList.add('winner'); });
     $('round').textContent = 'Fim';
     $('status').textContent = 'Sobrou uma opção de cada lista.';
     $('skip').hidden = true;
