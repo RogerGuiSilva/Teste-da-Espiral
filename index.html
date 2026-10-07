@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teste da Espiral</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Kalam:wght@400;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+    <h1>Teste da Espiral</h1>
+
+    <section id="setup">
+      <form id="form" class="panel" novalidate>
+        <div class="age">
+          <label for="idade">
+            <span class="big">Idade para casar</span>
+            <span class="hint">A espiral conta até esse número. A contagem começa na primeira opção de cada lista, então a ordem em que você escreve muda o resultado.</span>
+          </label>
+          <input id="idade" name="idade" type="number" inputmode="numeric" min="1" max="9999" placeholder="Idade" autocomplete="off">
+        </div>
+        <div class="fields" id="fields"></div>
+        <div class="actions">
+          <button class="btn ghost" type="button" id="add-cat">+ Nova categoria</button>
+        </div>
+        <p class="error" id="error" role="alert" hidden></p>
+        <div class="actions">
+          <button class="btn" type="submit">Girar a espiral</button>
+          <button class="btn ghost" type="button" id="clear">Limpar opções</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="stage" hidden>
+      <div class="stage-head">
+        <p class="round mono" id="round"></p>
+        <p id="status" role="status"></p>
+      </div>
+      <div class="stage-grid">
+        <div class="spiral-wrap">
+          <canvas id="spiral" aria-label="Espiral girando"></canvas>
+          <div class="counter" aria-hidden="true"><span id="count">0</span><span id="of"></span></div>
+        </div>
+        <div class="boards" id="boards"></div>
+      </div>
+      <div class="actions stage-actions">
+        <button class="btn ghost" type="button" id="skip">Pular animação</button>
+      </div>
+      <section class="result" id="result" hidden>
+        <h2 id="result-title"></h2>
+        <dl id="result-list"></dl>
+        <div class="actions">
+          <button class="btn" type="button" id="again">Novo teste</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
